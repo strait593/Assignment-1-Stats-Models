@@ -2,6 +2,7 @@ library(ggplot2)
 library(glmnet)
 library(MLmetrics)
 library(car)
+library(cowplot)
 
 data <- read.csv("data/jardin_data.csv")
 # Isolate the Date column for further use
@@ -56,12 +57,12 @@ plot_data_linear <- data.frame(
 )
 
 # Plot Linear Regression Model
-ggplot(plot_data_linear, aes(x = Fecha)) +
+plot_linear_model <- ggplot(plot_data_linear, aes(x = Fecha)) +
   geom_line(aes(y = Actual, color = "Actual"), linewidth = 1.5) +
   geom_line(aes(y = Predicted, color = "Predicted"), linewidth = 1.5, linetype = "dashed") +
   scale_color_manual(values = c("Actual" = "lightblue", "Predicted" = "firebrick")) +
   labs(
-    title = "Actual vs Predicted Caudal (Test Set)",
+    title = "Actual vs Predicted Caudal (Linear Model)",
     x = "Date (Fecha)",
     y = "Caudal",
     color = "Legend"
@@ -110,10 +111,10 @@ plot_ridge_model <- ggplot(plot_data_ridge, aes(x=Fecha))+
   theme_minimal()
 
 rmse_ridge <- RMSE(model_ridge_predictions, y_test)
-nse <- NSE(y_test, model_ridge_predictions)
+nse_ridge <- NSE(y_test, model_ridge_predictions)
 
 rmse_ridge
-nse
+nse_ridge
 
 # --- LASSSO ---
 model_lasso <- cv.glmnet(X_train, y_train, alpha=1.0)
@@ -171,4 +172,10 @@ plot_elastic_net_model <- ggplot(plot_data_elast_net, aes(x=Fecha))+
     color='Legend'
   )+
   theme_minimal()
+
+plots <- list(linear_plot = plot_linear_model, ridge_plot = plot_ridge_model, lasso_plot = plot_lasso_model, elast_net_plot = plot_elastic_net_model)
+
+# Create a grid of plots
+plot_grid(plotlist = plots, ncol=2,nrow=2)
+
 
