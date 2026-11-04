@@ -1,41 +1,98 @@
 library(ggplot2)
 library(glmnet)
 library(MLmetrics)
+library(car)
 
-df <- read.csv("data/jardin_data.csv")
-df <- as.data.frame(df)
 
-# Get an understanding on what we are dealing with
-head(df)
-summary(df)
-length(colnames(df))
+data <- read.csv("data/jardin_data.csv")
+# Isolate the Date column for further use
+dates <- data$Fecha
+data <- subset(data, select = -Fecha)
 
-train_df <- subset(df, select = -c(Fecha, Caudal))
-test_df <- df$Caudal
+head(data)
+summary(data)
+dim(data)
 
-# Linear model requires data frame object
-nrow(df)
-nrow(df) * 0.8
+# 2. Calculate clean train/test splits (80% / 20%)
+n <- nrow(data)
+training_size <- floor(n * 0.8)
 
-# gonna have to hard-code this...
-training_set <- train_df[1:(0.8 * nrow(train_df)), ]
-testing_set <- test_df[9662:12077,]
+# Train/test split with 80/20 ratio
+training_set <- data[1:training_size, ]
+test_set     <- data[(training_size + 1):n, ]
 
-# Create an instance of Linear Model
-model_linear <- lm(df$Caudal~ ., data=training_set)
+# Double check the dimensions
+dim(training_set)
+dim(test_set)
+nrow(training_set)
+nrow(test_set)
 
-# convert into matrix for glmnet to work
-X <- as.matrix(subset(df, select=-c(Fecha, Caudal)))
-y <- df$Caudal
-
-# split the data into X_train, X_test, y_train, y_test
-
-# Create an instance of the linear model
-model_linear <- lm(target_for_linear_model~. , data=df_for_linear_model)
+# --- Linear Regression ---
+model_linear <- lm(Caudal ~ ., data = training_set)
 summary(model_linear)
 
-model_linear_predictions
+model_linear_predictions <- predict(model_linear, newdata = test_set)
 
-ggplot(data=df_for_linear_model, aes(y=target_for_linear_model))+
-  geom_line(aes(model_linear), col="firebrick", alpha=0.7)+
-  theme_classic()
+test_dates <- dates[(training_size + 1):nrow(data)]
+test_actual <- data$Caudal[(training_size + 1):nrow(data)]
+
+# create a plotting data frame for convenience
+plot_data_linear <- data.frame(
+  Fecha = as.Date(test_dates),
+  Actual = test_actual,
+  Predicted = model_linear_predictions
+)
+
+ggplot(plot_data_linear, aes(x = Fecha)) +
+  geom_line(aes(y = Actual, color = "Actual"), linewidth = 1.5) +
+  geom_line(aes(y = Predicted, color = "Predicted"), linewidth = 1.5, linetype = "dashed") +
+  scale_color_manual(values = c("Actual" = "lightblue", "Predicted" = "firebrick")) +
+  labs(
+    title = "Actual vs Predicted Caudal (Test Set)",
+    x = "Date (Fecha)",
+    y = "Caudal",
+    color = "Legend"
+  ) +
+  theme_minimal()
+
+
+# ---Ridge, Lasso and Elastic Net---
+
+# Create data matrices for the models
+data_features <- subset(data, select=-Caudal)
+target_feature_vec <- data$Caudal
+
+X_train <- as.matrix(data_features[1:training_size, ])
+X_test  <- as.matrix(data_features[(training_size + 1):n, ])
+y_train <- target_feature_vec[1:training_size]
+y_test  <- target_feature_vec[(training_size + 1):n]
+
+# --- RIDGE MODEL ---
+model_ridge <- cv.glmnet(X_train, y_train, alpha=0.0)
+best_lambda_ridge <- model_ridge$lambda.min
+model_ridge <- glmnet(X_train, y_train , alpha=0.0, lambda=best_lambda_ridge) # fit the bets lambda
+summary(model_ridge)
+
+model_ridge_predictions <- predict(model_ridge, X_test)
+
+plot_data_ridge <- data.frame(
+  Fecha=as.Date(test_dates),
+  Actual=test_actual,
+  Predicted = as.vector(model_ridge_predictions)
+)
+
+ggplot(plot_data_ridge, aes(x=Fecha))+
+  geom_line(aes(y=Actual, color='Actual'), linewidth=1.5)+
+  geom_line(aes(y=Predicted, color="Predicted"), linewidth=1.5, linetype="dashed")+
+  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='firebrick'))+
+  labs(
+    title="Actual vs Predicted Caudal (Ridge Model)",
+    x='Date(Fecha)',
+    y='Caudal',
+    color='Legend'
+  )+
+  theme_minimal()
+
+# --- LASSSO ---
+
+
