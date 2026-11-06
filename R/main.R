@@ -13,13 +13,25 @@ head(data)
 summary(data)
 dim(data)
 
-# Calculate sizes of train/test splits
+# Random splits, 80/20 ratio
+set.seed(6)
 n <- nrow(data)
-training_size <- floor(n * 0.8)
+train_index <- sample(seq_len(n), size = floor(0.8 * n))
+test_index <- setdiff(seq_len(n), train_index)
 
-# Train/test split with 80/20 ratio
-training_set <- data[1:training_size, ]
-test_set     <- data[(training_size + 1):n, ]
+# Data for Linear Regression
+training_set <- data[train_index, ]
+test_set <- data[test_index, ]
+
+# Matrices for the penalty-based models
+data_features <- subset(data, select = -Caudal)
+X_train <- as.matrix(data_features[train_index, ])
+X_test <- as.matrix(data_features[test_index, ])
+y_train <- training_set$Caudal
+y_test <- test_set$Caudal
+
+test_dates <- dates[test_index]
+test_actual <- y_test
 
 # Double check the dimensions
 dim(training_set)
@@ -46,9 +58,6 @@ summary(model_linear)
 # Predictions
 model_linear_predictions <- predict(model_linear, newdata = test_set)
 
-test_dates <- dates[(training_size + 1):nrow(data)]
-test_actual <- data$Caudal[(training_size + 1):nrow(data)]
-
 # Create a plotting data frame for convenience
 plot_data_linear <- data.frame(
   Fecha = as.Date(test_dates),
@@ -69,19 +78,11 @@ plot_linear_model <- ggplot(plot_data_linear, aes(x = Fecha)) +
   ) +
   theme_minimal()
 
+rmse_linear <- RMSE(model_linear_predictions, y_test)
+nse_linear <- NSE(y_test, model_linear_predictions)
+
 
 # Ridge, Lasso and Elastic Net Section
-
-# Create data matrices for the models
-data_features <- subset(data, select=-Caudal)
-target_feature_vec <- data$Caudal
-
-# Matrices
-X_train <- as.matrix(data_features[1:training_size, ])
-X_test  <- as.matrix(data_features[(training_size + 1):n, ])
-y_train <- target_feature_vec[1:training_size]
-y_test  <- target_feature_vec[(training_size + 1):n]
-
 # --- RIDGE MODEL ---
 model_ridge <- cv.glmnet(X_train, y_train, alpha=0.0)
 best_lambda_ridge <- model_ridge$lambda.min
@@ -101,7 +102,7 @@ plot_data_ridge <- data.frame(
 plot_ridge_model <- ggplot(plot_data_ridge, aes(x=Fecha))+
   geom_line(aes(y=Actual, color='Actual'), linewidth=1.5)+
   geom_line(aes(y=Predicted, color="Predicted"), linewidth=1.5, linetype="dashed")+
-  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='firebrick'))+
+  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='orange'))+
   labs(
     title="Actual vs Predicted Caudal (Ridge Model)",
     x='Date(Fecha)',
@@ -134,7 +135,7 @@ plot_data_lasso <- data.frame(
 plot_lasso_model <- ggplot(plot_data_lasso, aes(x=Fecha))+
   geom_line(aes(y=Actual, color='Actual'), linewidth=1.5)+
   geom_line(aes(y=Predicted, color="Predicted"), linewidth=1.5, linetype="dashed")+
-  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='firebrick'))+
+  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='purple'))+
   labs(
     title="Actual vs Predicted Caudal (Lasso Model)",
     x='Date(Fecha)',
@@ -144,7 +145,11 @@ plot_lasso_model <- ggplot(plot_data_lasso, aes(x=Fecha))+
   theme_minimal()
 
 rmse_lasso <- RMSE(model_lasso_predictions, y_test)
+nse_lasso <- NSE(y_test, model_lasso_predictions)
+
 rmse_lasso
+nse_lasso
+
 
 # ---Elastic Net Model---
 model_elast_net <- cv.glmnet(X_train, y_train, alpha=0.5)
@@ -164,7 +169,7 @@ plot_data_elast_net <- data.frame(
 plot_elastic_net_model <- ggplot(plot_data_elast_net, aes(x=Fecha))+
   geom_line(aes(y=Actual, color='Actual'), linewidth=1.5)+
   geom_line(aes(y=Predicted, color="Predicted"), linewidth=1.5, linetype="dashed")+
-  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='firebrick'))+
+  scale_color_manual(values=c("Actual"='lightblue', "Predicted"='blue'))+
   labs(
     title="Actual vs Predicted Caudal (Elastic Net Model)",
     x='Date(Fecha)',
@@ -173,9 +178,25 @@ plot_elastic_net_model <- ggplot(plot_data_elast_net, aes(x=Fecha))+
   )+
   theme_minimal()
 
+rmse_net_elastic_net <- RMSE(model_elastic_net_predictions, y_test)
+nse_elastic_net <- NSE(y_test, model_elastic_net_predictions)
+
 plots <- list(linear_plot = plot_linear_model, ridge_plot = plot_ridge_model, lasso_plot = plot_lasso_model, elast_net_plot = plot_elastic_net_model)
 
 # Create a grid of plots
 plot_grid(plotlist = plots, ncol=2,nrow=2)
+
+# --- KEY PERFORMANCE METRICS ---
+# NSE
+nse_all <- list(lasso_nse = nse_lasso, ridge_nse=nse_ridge, linear_nse = nse_linear, elastic_net_nse = nse_elastic_net)
+# RMSE
+rmse_all <- list(lasso_rmse=rmse_lasso, ridge_rmse=rmse_ridge, linear_rmse=rmse_linear, elastic_net_rmse = rmse_net_elastic_net)
+
+print(nse_all)
+print(rmse_all)
+
+
+
+
 
 
