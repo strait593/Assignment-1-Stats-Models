@@ -207,11 +207,13 @@ best_nse <- model_metrics[which.max(model_metrics$NSE), ]
 
 cat("\nModel comparison:\n")
 print(model_metrics)
+
 cat(sprintf(
   "\nBest model by RMSE: %s (RMSE = %.4f)\n",
   best_rmse$Model,
   best_rmse$RMSE
 ))
+
 cat(sprintf(
   "Best model by NSE: %s (NSE = %.4f)\n",
   best_nse$Model,
