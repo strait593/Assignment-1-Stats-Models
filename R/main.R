@@ -186,7 +186,7 @@ plots <- list(linear_plot = plot_linear_model, ridge_plot = plot_ridge_model, la
 # Create a grid of plots
 plot_grid(plotlist = plots, ncol=2,nrow=2)
 
-# --- KEY PERFORMANCE METRICS ---
+# --- KEY PERFORMANCE METRICS AND SUMMARY ---
 # NSE
 nse_all <- list(lasso_nse = nse_lasso, ridge_nse=nse_ridge, linear_nse = nse_linear, elastic_net_nse = nse_elastic_net)
 # RMSE
@@ -195,8 +195,25 @@ rmse_all <- list(lasso_rmse=rmse_lasso, ridge_rmse=rmse_ridge, linear_rmse=rmse_
 print(nse_all)
 print(rmse_all)
 
+# SUMMARIZING
+model_metrics <- data.frame(
+  Model = c("Multiple Linear Regression", "Ridge", "LASSO", "Elastic Net"),
+  RMSE = c(rmse_linear, rmse_ridge, rmse_lasso, rmse_net_elastic_net),
+  NSE = c(nse_linear, nse_ridge, nse_lasso, nse_elastic_net)
+)
 
+best_rmse <- model_metrics[which.min(model_metrics$RMSE), ]
+best_nse <- model_metrics[which.max(model_metrics$NSE), ]
 
-
-
-
+cat("\nModel comparison:\n")
+print(model_metrics)
+cat(sprintf(
+  "\nBest model by RMSE: %s (RMSE = %.4f)\n",
+  best_rmse$Model,
+  best_rmse$RMSE
+))
+cat(sprintf(
+  "Best model by NSE: %s (NSE = %.4f)\n",
+  best_nse$Model,
+  best_nse$NSE
+))
