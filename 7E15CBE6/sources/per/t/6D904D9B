@@ -3,7 +3,7 @@
     "path": "~/Desktop/ML-Viadrina/Assignments/Assignment-1/R/main.R",
     "project_path": "R/main.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1573263387",
     "contents": "",
     "dirty": false,
     "created": 1793807856609.0,
@@ -16,11 +16,11 @@
         "scrollLine": "188"
     },
     "folds": "",
-    "lastKnownWriteTime": 1793969044,
+    "lastKnownWriteTime": 1793969161,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1793969044,
+    "last_content_update": 1793969161,
     "read_only": false,
     "read_only_alternatives": []
 }

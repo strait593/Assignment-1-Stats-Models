@@ -8,6 +8,9 @@ data <- read.csv("data/jardin_data.csv")
 # Isolate the Date column for further use
 dates <- data$Fecha
 data <- subset(data, select = -Fecha)
+# Convert the data into binary datatype for a correct data split
+season_columns <- grep("^Season_", names(data), value = TRUE)
+data[season_columns] <- lapply(data[season_columns], function(x) as.integer(x == "True"))
 
 head(data)
 summary(data)
